@@ -5,21 +5,25 @@ linux-hotload: linux
 
 linux:
 	ruby ./rebuild-fcache.rb
-	cd deps/nanovg/src   && $(CC) nanovg.c -c -fPIC
+	cd deps/nanovg/src   && $(CC) nanovg.c -c -fPIC $(CFLAGS)
 	$(AR) rc deps/libnanovg.a deps/nanovg/src/*.o
 	cd deps/mruby-file-stat/src && ../configure
-	cd src/osc-bridge    && make lib
+	cd src/osc-bridge    && make lib CFLAGS="$(CPPFLAGS) $(CFLAGS) $(LDFLAGS)"
 #	cd mruby             && UI_HOTLOAD=1 MRUBY_CONFIG=../build_config.rb rake
 # force rebuilding all code that depends on hotloading.
-	touch src/mruby-widget-lib/src/api.c  
+	touch src/mruby-widget-lib/src/api.c
 	cd mruby             && $(HOTLOADING) MRUBY_CONFIG=../build_config.rb rake
-	$(CC) -shared -o libzest.so `find mruby/build/host -type f | grep -v mrbc | grep -e "\.o$$" | grep -v bin` ./deps/libnanovg.a \
+	$(CC) -shared -o libzest.so -Wl,--whole-archive \
+		./mruby/build/host/lib/libmruby.a \
+		-Wl,--no-whole-archive \
 		./deps/libnanovg.a \
 		src/osc-bridge/libosc-bridge.a \
-		`pkg-config --libs libuv` -lm -lX11 -lGL -lpthread
+		`pkg-config --libs libuv` -lm -lX11 -lGL -lpthread \
+		$(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
 	$(CC) test-libversion.c deps/pugl/pugl/pugl_x11.c \
-		  -DPUGL_HAVE_GL \
-		  -ldl -o zest -lX11 -lGL -lpthread -I deps/pugl -std=gnu99 -Wno-trigraphs
+		-DPUGL_HAVE_GL \
+		-ldl -o zest -lX11 -lGL -lpthread -I deps/pugl -std=gnu99 -Wno-trigraphs \
+		$(CPPFLAGS) $(CFLAGS) $(LDFLAGS)
 
 osx: deps/libuv.a
 	ruby ./rebuild-fcache.rb
