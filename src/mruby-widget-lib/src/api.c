@@ -25,6 +25,15 @@ static void
 check_error(mrb_state *mrb);
 
 char *get_search_path(void) {
+    const char* assets_path = "/usr/share/zyn-fusion/";
+    char buf[256];
+    snprintf(buf, sizeof(buf), "%s/qml/MainWindow.qml", assets_path);
+    FILE *f = fopen(buf, "r");
+    if (f) {
+        fclose(f);
+        return strdup(assets_path);
+    }
+
     char buffer[1024];
     GetModuleFileName(GetModuleHandle("libzest.dll"), buffer, sizeof(buffer));
     //printf("get_search_path() => <%s>\n", buffer);
