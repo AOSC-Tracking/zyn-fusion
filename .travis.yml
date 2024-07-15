@@ -1,0 +1,11 @@
+language: c
+addons:
+  apt:
+    packages:
+    - mesa-common-dev
+    - libgl1-mesa-dev
+    - libuv1-dev
+    - pkg-config
+sudo: false
+script:
+    - make

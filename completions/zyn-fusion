@@ -1,0 +1,79 @@
+# zyn-fusion(1) completion                                 -*- shell-script -*-
+# use shellcheck: "shellcheck -e bash <filename>"
+
+__zyn_fusion_get_ports()
+{
+    local mtool=ss
+    command -v $mtool >/dev/null 2>/dev/null || mtool=netstat
+    command -v $mtool >/dev/null 2>/dev/null || mtool=
+    
+    if [ "$mtool" ]
+    then
+        # ports must be local, and should not use
+        # reserved port names (like 'ntp')
+        $mtool -lu |
+            grep -o '\(127.0.0.1\|0.0.0.0\):[0-9]\+' |
+            sed 's/.*://' | tr '\n' ' '
+    fi
+}
+
+_zyn_fusion()
+{
+    local cword=$COMP_CWORD
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    local params=
+    local normal_switches="--uri --script"
+    local filetypes=
+
+    # call routine provided by bash-completion
+    _init_completion || return
+
+    local prev=
+    if [ "$cword" -gt 1 ]
+    then
+        prev=${COMP_WORDS[cword-1]}
+        if [ "$prev" == --help ]
+        then
+            return
+        fi
+    fi
+    
+    case $prev in
+        --uri)
+            params=$(__zyn_fusion_get_ports)
+            ;;
+        --script)
+            filetypes=rb
+            ;;
+        *)
+            local help_params=
+            if [ "$cword" -eq 1 ]
+            then
+                help_params="--help"
+            fi
+            params="$normal_switches $help_params"
+            # filter out params we've already used
+            for i in "${!COMP_WORDS[@]}"
+            do
+                if [[ ${COMP_WORDS[$i]} =~ ^--[^/]+$ ]]
+                then
+                    params=${params//${COMP_WORDS[$i]} /}
+                fi
+            done
+            ;;
+    esac
+    
+    if [ "$filetypes" ]
+    then
+        # use completion routine provided by bash-completion
+        # to fill $COMPREPLY
+        _filedir "@($filetypes)"
+    else
+        # none of our parameters contain spaces, so deactivate shellcheck's warning
+        # shellcheck disable=SC2207
+        COMPREPLY=( $(compgen -W "${params}" -- "${cur}") )
+    fi    
+}
+
+
+complete -F _zyn_fusion zest zyn-fusion
